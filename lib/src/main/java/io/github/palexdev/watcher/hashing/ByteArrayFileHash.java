@@ -16,33 +16,35 @@ package io.github.palexdev.watcher.hashing;
 import java.util.Arrays;
 import java.util.Base64;
 
-/** A class representing the hash code of a file as a byte array. */
+/**
+ * A class representing the hash code of a file as a byte array.
+ */
 class ByteArrayFileHash implements FileHash {
-  private final byte[] value;
+    private final byte[] value;
 
-  ByteArrayFileHash(byte[] value) {
-    this.value = value;
-  }
+    ByteArrayFileHash(byte[] value) {
+        this.value = value;
+    }
 
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    ByteArrayFileHash hash = (ByteArrayFileHash) o;
-    return Arrays.equals(value, hash.value);
-  }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ByteArrayFileHash hash = (ByteArrayFileHash) o;
+        return Arrays.equals(value, hash.value);
+    }
 
-  @Override
-  public int hashCode() {
-    return Arrays.hashCode(value);
-  }
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(value);
+    }
 
-  @Override
-  public String toString() {
-    return Base64.getEncoder().encodeToString(value);
-  }
+    @Override
+    public String toString() {
+        return Base64.getEncoder().encodeToString(value);
+    }
 
-  public byte[] asBytes() {
-    return Arrays.copyOf(value, value.length);
-  }
+    public byte[] asBytes() {
+        return Arrays.copyOf(value, value.length);
+    }
 }

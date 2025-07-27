@@ -32,33 +32,35 @@ import java.time.Instant;
  */
 @FunctionalInterface
 public interface FileHasher {
-  /** The default file hasher instance, which uses Murmur3. */
-  FileHasher DEFAULT_FILE_HASHER =
-      path -> {
-        Murmur3F murmur = new Murmur3F();
-        try (InputStream is = new BufferedInputStream(Files.newInputStream(path))) {
-          int b;
-          while ((b = is.read()) != -1) {
-            murmur.update(b);
-          }
-        }
-        return new ByteArrayFileHash(murmur.getValueBytesBigEndian());
-      };
+    /**
+     * The default file hasher instance, which uses Murmur3.
+     */
+    FileHasher DEFAULT_FILE_HASHER =
+        path -> {
+            Murmur3F murmur = new Murmur3F();
+            try (InputStream is = new BufferedInputStream(Files.newInputStream(path))) {
+                int b;
+                while ((b = is.read()) != -1) {
+                    murmur.update(b);
+                }
+            }
+            return new ByteArrayFileHash(murmur.getValueBytesBigEndian());
+        };
 
-  /**
-   * A file hasher that returns the last modified time provided by the OS.
-   *
-   * <p>This only works reliably on certain file systems and JDKs that support at least
-   * millisecond-level precision.
-   */
-  FileHasher LAST_MODIFIED_TIME =
-      path -> {
-        Instant modifyTime = Files.getLastModifiedTime(path).toInstant();
-        ByteBuffer buffer = ByteBuffer.allocate(2 * Long.BYTES);
-        buffer.putLong(modifyTime.getEpochSecond());
-        buffer.putLong(modifyTime.getNano());
-        return new ByteArrayFileHash(buffer.array());
-      };
+    /**
+     * A file hasher that returns the last modified time provided by the OS.
+     *
+     * <p>This only works reliably on certain file systems and JDKs that support at least
+     * millisecond-level precision.
+     */
+    FileHasher LAST_MODIFIED_TIME =
+        path -> {
+            Instant modifyTime = Files.getLastModifiedTime(path).toInstant();
+            ByteBuffer buffer = ByteBuffer.allocate(2 * Long.BYTES);
+            buffer.putLong(modifyTime.getEpochSecond());
+            buffer.putLong(modifyTime.getNano());
+            return new ByteArrayFileHash(buffer.array());
+        };
 
-  FileHash hash(Path path) throws IOException;
+    FileHash hash(Path path) throws IOException;
 }

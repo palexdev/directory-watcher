@@ -22,6 +22,7 @@ import io.github.palexdev.watcher.hashing.FileHash;
 import io.github.palexdev.watcher.hashing.FileHasher;
 import io.github.palexdev.watcher.visitor.FileTreeVisitor;
 import io.github.palexdev.watchservice.jna.*;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -38,339 +39,347 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class MacOSXListeningWatchService extends AbstractWatchService {
 
-  /** Configuration for the watch service. */
-  public interface Config {
-
-    double DEFAULT_LATENCY = 0.5;
-    int DEFAULT_QUEUE_SIZE = 1024;
-
-    /** The maximum number of seconds to wait after hearing about an event */
-    default double latency() {
-      return DEFAULT_LATENCY;
-    }
-
-    /** The size of the queue used for each WatchKey */
-    default int queueSize() {
-      return DEFAULT_QUEUE_SIZE;
-    }
-
     /**
-     * Request file-level notifications from the watcher. This can be expensive so use with care.
-     *
-     * <p>NOTE: this feature will automatically be enabled when the file hasher is null, since the
-     * hasher is needed to determine which files in a directory were actually created or modified.
+     * Configuration for the watch service.
      */
-    default boolean fileLevelEvents() {
-      return false;
-    }
+    public interface Config {
 
-    /**
-     * The file hasher to use to check whether files have changed. If null, this will disable file
-     * hashing and automatically turn on file-level events. See `fileLevelEvents` config for more
-     * information.
-     */
-    default FileHasher fileHasher() {
-      return FileHasher.DEFAULT_FILE_HASHER;
-    }
+        double DEFAULT_LATENCY = 0.5;
+        int DEFAULT_QUEUE_SIZE = 1024;
 
-    /**
-     * The file tree visitor to use in order to find files. If null, the default file visitor will
-     * be used
-     */
-    default FileTreeVisitor fileTreeVisitor() {
-      return FileTreeVisitor.DEFAULT_FILE_TREE_VISITOR;
-    }
-  }
-
-  /** A file hasher that always increments its value. Used if we want to "turn off" hashing. */
-  private FileHasher INCREMENTING_FILE_HASHER =
-      new FileHasher() {
-        private final AtomicLong value = new AtomicLong();
-
-        @Override
-        public FileHash hash(Path path) throws IOException {
-          return FileHash.fromLong(value.incrementAndGet());
+        /**
+         * The maximum number of seconds to wait after hearing about an event
+         */
+        default double latency() {
+            return DEFAULT_LATENCY;
         }
-      };
 
-  // need to keep reference to callbacks to prevent garbage collection
-  @SuppressWarnings({"MismatchedQueryAndUpdateOfCollection"})
-  private final List<CarbonAPI.FSEventStreamCallback> callbackList = new ArrayList<>();
-
-  private final List<CFRunLoopThread> threadList = new ArrayList<>();
-  private final Set<Path> pathsWatching = new HashSet<>();
-
-  private final double latency;
-  private final int queueSize;
-  private final FileHasher fileHasher;
-  private final FileTreeVisitor fileTreeVisitor;
-  private final boolean fileLevelEvents;
-
-  public MacOSXListeningWatchService(Config config) {
-    this.latency = config.latency();
-    this.queueSize = config.queueSize();
-    this.fileTreeVisitor = config.fileTreeVisitor();
-    FileHasher hasher = config.fileHasher();
-    this.fileLevelEvents = hasher == null || config.fileLevelEvents();
-    this.fileHasher = hasher == null ? INCREMENTING_FILE_HASHER : hasher;
-  }
-
-  public MacOSXListeningWatchService() {
-    this(new Config() {});
-  }
-
-  private final long kFSEventStreamEventIdSinceNow = -1; // this is 0xFFFFFFFFFFFFFFFF
-  private final int kFSEventStreamCreateFlagNoDefer = 0x00000002;
-  private final int kFSEventStreamCreateFlagFileEvents = 0x00000010;
-
-  @Override
-  public synchronized AbstractWatchKey register(
-      WatchablePath watchable, Iterable<? extends WatchEvent.Kind<?>> events) throws IOException {
-    checkOpen();
-    final MacOSXWatchKey watchKey = new MacOSXWatchKey(this, watchable, events, queueSize);
-    final Path file = watchable.getFile().toAbsolutePath();
-    // if we are already watching a parent of this directory, do nothing.
-    for (Path watchedPath : pathsWatching) {
-      if (file.startsWith(watchedPath)) return watchKey;
-    }
-
-    final SortedMap<Path, FileHash> hashCodeMap =
-        PathUtils.createHashCodeMap(file, fileHasher, fileTreeVisitor);
-    final Pointer[] values = {CFStringRef.toCFString(file.toString()).getPointer()};
-    final CFArrayRef pathsToWatch =
-        CarbonAPI.INSTANCE.CFArrayCreate(null, values, CFIndex.valueOf(1), null);
-    final MacOSXListeningCallback callback =
-        new MacOSXListeningCallback(watchKey, fileHasher, fileTreeVisitor, hashCodeMap, file);
-    callbackList.add(callback);
-    int flags = kFSEventStreamCreateFlagNoDefer;
-    if (fileLevelEvents) {
-      flags = flags | kFSEventStreamCreateFlagFileEvents;
-    }
-    final FSEventStreamRef streamRef =
-        CarbonAPI.INSTANCE.FSEventStreamCreate(
-            Pointer.NULL,
-            callback,
-            Pointer.NULL,
-            pathsToWatch,
-            kFSEventStreamEventIdSinceNow,
-            latency,
-            flags);
-
-    final CFRunLoopThread thread = new CFRunLoopThread(streamRef, file.toFile());
-    callback.onClose(
-        () -> {
-          close(thread, callback, file);
-        });
-
-    thread.setDaemon(true);
-    thread.start();
-    threadList.add(thread);
-    pathsWatching.add(file);
-    return watchKey;
-  }
-
-  public static class CFRunLoopThread extends Thread {
-    private final FSEventStreamRef streamRef;
-    private CFRunLoopRef runLoopRef;
-    private boolean isClosed = false;
-
-    public CFRunLoopThread(FSEventStreamRef streamRef, File file) {
-      super("WatchService for " + file);
-      this.streamRef = streamRef;
-    }
-
-    @Override
-    public void run() {
-      synchronized (streamRef) {
-        if (isClosed) return;
-        runLoopRef = CarbonAPI.INSTANCE.CFRunLoopGetCurrent();
-        final CFStringRef runLoopMode = CFStringRef.toCFString("kCFRunLoopDefaultMode");
-        CarbonAPI.INSTANCE.FSEventStreamScheduleWithRunLoop(streamRef, runLoopRef, runLoopMode);
-        CarbonAPI.INSTANCE.FSEventStreamStart(streamRef);
-      }
-      CarbonAPI.INSTANCE.CFRunLoopRun();
-    }
-
-    public void close() {
-      synchronized (streamRef) {
-        if (isClosed) return;
-        if (runLoopRef != null) {
-          CarbonAPI.INSTANCE.CFRunLoopStop(runLoopRef);
-          CarbonAPI.INSTANCE.FSEventStreamStop(streamRef);
-          CarbonAPI.INSTANCE.FSEventStreamInvalidate(streamRef);
+        /**
+         * The size of the queue used for each WatchKey
+         */
+        default int queueSize() {
+            return DEFAULT_QUEUE_SIZE;
         }
-        CarbonAPI.INSTANCE.FSEventStreamRelease(streamRef);
-        isClosed = true;
-      }
+
+        /**
+         * Request file-level notifications from the watcher. This can be expensive so use with care.
+         *
+         * <p>NOTE: this feature will automatically be enabled when the file hasher is null, since the
+         * hasher is needed to determine which files in a directory were actually created or modified.
+         */
+        default boolean fileLevelEvents() {
+            return false;
+        }
+
+        /**
+         * The file hasher to use to check whether files have changed. If null, this will disable file
+         * hashing and automatically turn on file-level events. See `fileLevelEvents` config for more
+         * information.
+         */
+        default FileHasher fileHasher() {
+            return FileHasher.DEFAULT_FILE_HASHER;
+        }
+
+        /**
+         * The file tree visitor to use in order to find files. If null, the default file visitor will
+         * be used
+         */
+        default FileTreeVisitor fileTreeVisitor() {
+            return FileTreeVisitor.DEFAULT_FILE_TREE_VISITOR;
+        }
     }
-  }
 
-  @Override
-  public synchronized void close() {
-    super.close();
-    threadList.forEach(CFRunLoopThread::close);
-    threadList.clear();
-    callbackList.clear();
-    pathsWatching.clear();
-  }
+    /**
+     * A file hasher that always increments its value. Used if we want to "turn off" hashing.
+     */
+    private FileHasher INCREMENTING_FILE_HASHER =
+        new FileHasher() {
+            private final AtomicLong value = new AtomicLong();
 
-  public synchronized void close(
-      CFRunLoopThread runLoopThread, CarbonAPI.FSEventStreamCallback callback, Path path) {
-    threadList.remove(runLoopThread);
-    callbackList.remove(callback);
-    pathsWatching.remove(path);
-    runLoopThread.close();
-  }
+            @Override
+            public FileHash hash(Path path) throws IOException {
+                return FileHash.fromLong(value.incrementAndGet());
+            }
+        };
 
-  private static class MacOSXListeningCallback implements CarbonAPI.FSEventStreamCallback {
-    private final MacOSXWatchKey watchKey;
-    private final SortedMap<Path, FileHash> hashCodeMap;
+    // need to keep reference to callbacks to prevent garbage collection
+    @SuppressWarnings({"MismatchedQueryAndUpdateOfCollection"})
+    private final List<CarbonAPI.FSEventStreamCallback> callbackList = new ArrayList<>();
+
+    private final List<CFRunLoopThread> threadList = new ArrayList<>();
+    private final Set<Path> pathsWatching = new HashSet<>();
+
+    private final double latency;
+    private final int queueSize;
     private final FileHasher fileHasher;
     private final FileTreeVisitor fileTreeVisitor;
-    private final Path realPath;
-    private final Path absPath;
-    private final int realPathSize;
+    private final boolean fileLevelEvents;
 
-    private Runnable onCloseCallback;
-
-    private MacOSXListeningCallback(
-        MacOSXWatchKey watchKey,
-        FileHasher fileHasher,
-        FileTreeVisitor fileTreeVisitor,
-        SortedMap<Path, FileHash> hashCodeMap,
-        Path absPath)
-        throws IOException {
-      this.watchKey = watchKey;
-      this.hashCodeMap = hashCodeMap;
-      this.fileHasher = fileHasher;
-      this.fileTreeVisitor = fileTreeVisitor;
-      this.realPath = absPath.toRealPath();
-      this.absPath = absPath;
-      this.realPathSize = realPath.toString().length() + 1;
+    public MacOSXListeningWatchService(Config config) {
+        this.latency = config.latency();
+        this.queueSize = config.queueSize();
+        this.fileTreeVisitor = config.fileTreeVisitor();
+        FileHasher hasher = config.fileHasher();
+        this.fileLevelEvents = hasher == null || config.fileLevelEvents();
+        this.fileHasher = hasher == null ? INCREMENTING_FILE_HASHER : hasher;
     }
 
-    public void onClose(Runnable callback) {
-      this.onCloseCallback = callback;
+    public MacOSXListeningWatchService() {
+        this(new Config() {});
+    }
+
+    private final long kFSEventStreamEventIdSinceNow = -1; // this is 0xFFFFFFFFFFFFFFFF
+    private final int kFSEventStreamCreateFlagNoDefer = 0x00000002;
+    private final int kFSEventStreamCreateFlagFileEvents = 0x00000010;
+
+    @Override
+    public synchronized AbstractWatchKey register(
+        WatchablePath watchable, Iterable<? extends WatchEvent.Kind<?>> events) throws IOException {
+        checkOpen();
+        final MacOSXWatchKey watchKey = new MacOSXWatchKey(this, watchable, events, queueSize);
+        final Path file = watchable.getFile().toAbsolutePath();
+        // if we are already watching a parent of this directory, do nothing.
+        for (Path watchedPath : pathsWatching) {
+            if (file.startsWith(watchedPath)) return watchKey;
+        }
+
+        final SortedMap<Path, FileHash> hashCodeMap =
+            PathUtils.createHashCodeMap(file, fileHasher, fileTreeVisitor);
+        final Pointer[] values = {CFStringRef.toCFString(file.toString()).getPointer()};
+        final CFArrayRef pathsToWatch =
+            CarbonAPI.INSTANCE.CFArrayCreate(null, values, CFIndex.valueOf(1), null);
+        final MacOSXListeningCallback callback =
+            new MacOSXListeningCallback(watchKey, fileHasher, fileTreeVisitor, hashCodeMap, file);
+        callbackList.add(callback);
+        int flags = kFSEventStreamCreateFlagNoDefer;
+        if (fileLevelEvents) {
+            flags = flags | kFSEventStreamCreateFlagFileEvents;
+        }
+        final FSEventStreamRef streamRef =
+            CarbonAPI.INSTANCE.FSEventStreamCreate(
+                Pointer.NULL,
+                callback,
+                Pointer.NULL,
+                pathsToWatch,
+                kFSEventStreamEventIdSinceNow,
+                latency,
+                flags);
+
+        final CFRunLoopThread thread = new CFRunLoopThread(streamRef, file.toFile());
+        callback.onClose(
+            () -> {
+                close(thread, callback, file);
+            });
+
+        thread.setDaemon(true);
+        thread.start();
+        threadList.add(thread);
+        pathsWatching.add(file);
+        return watchKey;
+    }
+
+    public static class CFRunLoopThread extends Thread {
+        private final FSEventStreamRef streamRef;
+        private CFRunLoopRef runLoopRef;
+        private boolean isClosed = false;
+
+        public CFRunLoopThread(FSEventStreamRef streamRef, File file) {
+            super("WatchService for " + file);
+            this.streamRef = streamRef;
+        }
+
+        @Override
+        public void run() {
+            synchronized (streamRef) {
+                if (isClosed) return;
+                runLoopRef = CarbonAPI.INSTANCE.CFRunLoopGetCurrent();
+                final CFStringRef runLoopMode = CFStringRef.toCFString("kCFRunLoopDefaultMode");
+                CarbonAPI.INSTANCE.FSEventStreamScheduleWithRunLoop(streamRef, runLoopRef, runLoopMode);
+                CarbonAPI.INSTANCE.FSEventStreamStart(streamRef);
+            }
+            CarbonAPI.INSTANCE.CFRunLoopRun();
+        }
+
+        public void close() {
+            synchronized (streamRef) {
+                if (isClosed) return;
+                if (runLoopRef != null) {
+                    CarbonAPI.INSTANCE.CFRunLoopStop(runLoopRef);
+                    CarbonAPI.INSTANCE.FSEventStreamStop(streamRef);
+                    CarbonAPI.INSTANCE.FSEventStreamInvalidate(streamRef);
+                }
+                CarbonAPI.INSTANCE.FSEventStreamRelease(streamRef);
+                isClosed = true;
+            }
+        }
     }
 
     @Override
-    public void invoke(
-        FSEventStreamRef streamRef,
-        Pointer clientCallBackInfo,
-        NativeLong numEvents,
-        Pointer eventPaths,
-        Pointer eventFlags /* array of unsigned int */,
-        Pointer eventIds /* array of unsigned long */) {
-      final int length = numEvents.intValue();
-
-      for (String fileName : eventPaths.getStringArray(0, length)) {
-        /*
-         * Note: If file-level events are enabled, fileName will be an individual file
-         * so we usually won't recurse. It is necessary to normalise the filename back
-         * to what is used in the key roots. Because the watcher returns real paths, but
-         * relative paths may have be used in the key roots;
-         */
-
-        // only substring, if there are child paths, else just return absPath
-        Path path =
-            fileName.length() + 1 != realPathSize
-                ? absPath.resolve(fileName.substring(realPathSize))
-                : absPath;
-        final Set<Path> filesOnDisk;
-        try {
-          filesOnDisk = PathUtils.recursiveListFiles(fileTreeVisitor, path);
-        } catch (IOException e) {
-          throw new IllegalStateException("Could not recursively list files for " + path, e);
-        }
-        /*
-         * We collect and process all actions for each category of created, modified and
-         * deleted as it appears a first thread can start while a second thread can get
-         * through faster. If we do the collection for each category in a second thread
-         * can get to the processing of modifications before the first thread is
-         * finished processing creates. In this case the modification will not be
-         * reported correctly.
-         *
-         * NOTE: We are now using a hash to determine if a file is different because if
-         * modifications happens closely together the last modified time is not granular
-         * enough to be seen as a modification. This likely mitigates the issue I
-         * originally saw where the ordering was incorrect but I will leave the
-         * collection and processing of each category together.
-         */
-
-        for (Path file : findCreatedFiles(filesOnDisk)) {
-          if (watchKey.isReportCreateEvents()) {
-            watchKey.signalEvent(ENTRY_CREATE, file);
-          }
-        }
-
-        for (Path file : findModifiedFiles(filesOnDisk)) {
-          if (watchKey.isReportModifyEvents()) {
-            watchKey.signalEvent(ENTRY_MODIFY, file);
-          }
-        }
-
-        List<Path> deletedPaths = findDeletedFiles(path, filesOnDisk);
-
-        if (hashCodeMap.isEmpty()) {
-          // all underlying paths are gone, cancel the key.
-          // This must happen before this event, so that DirectoryWatch also cleans up
-          watchKey.cancel();
-        }
-
-        for (Path file : deletedPaths) {
-          if (watchKey.isReportDeleteEvents()) {
-            watchKey.signalEvent(ENTRY_DELETE, file);
-          }
-        }
-
-        if (hashCodeMap.isEmpty()) {
-          // all underlying paths are gone, so stop this service
-          // These is separated here to go after, in case it throws an exception.
-          try {
-            onCloseCallback.run();
-          } catch (Exception e) {
-            throw new RuntimeException(e);
-          }
-        }
-      }
+    public synchronized void close() {
+        super.close();
+        threadList.forEach(CFRunLoopThread::close);
+        threadList.clear();
+        callbackList.clear();
+        pathsWatching.clear();
     }
 
-    private List<Path> findModifiedFiles(Set<Path> filesOnDisk) {
-      List<Path> modifiedFileList = new ArrayList<Path>();
-      for (Path file : filesOnDisk) {
-        FileHash storedHashCode = hashCodeMap.get(file);
-        FileHash newHashCode = PathUtils.hash(fileHasher, file);
-        if (newHashCode != null && !newHashCode.equals(storedHashCode)) {
-          modifiedFileList.add(file);
-          hashCodeMap.put(file, newHashCode);
-        }
-      }
-      return modifiedFileList;
+    public synchronized void close(
+        CFRunLoopThread runLoopThread, CarbonAPI.FSEventStreamCallback callback, Path path) {
+        threadList.remove(runLoopThread);
+        callbackList.remove(callback);
+        pathsWatching.remove(path);
+        runLoopThread.close();
     }
 
-    private List<Path> findCreatedFiles(Set<Path> filesOnDisk) {
-      List<Path> createdFileList = new ArrayList<Path>();
-      for (Path file : filesOnDisk) {
-        if (!hashCodeMap.containsKey(file)) {
-          FileHash hashCode = PathUtils.hash(fileHasher, file);
-          if (hashCode != null) {
-            createdFileList.add(file);
-            hashCodeMap.put(file, hashCode);
-          }
-        }
-      }
-      return createdFileList;
-    }
+    private static class MacOSXListeningCallback implements CarbonAPI.FSEventStreamCallback {
+        private final MacOSXWatchKey watchKey;
+        private final SortedMap<Path, FileHash> hashCodeMap;
+        private final FileHasher fileHasher;
+        private final FileTreeVisitor fileTreeVisitor;
+        private final Path realPath;
+        private final Path absPath;
+        private final int realPathSize;
 
-    private List<Path> findDeletedFiles(Path path, Set<Path> filesOnDisk) {
-      List<Path> deletedFileList = new ArrayList<Path>();
-      for (Path file : PathUtils.subtreePaths(hashCodeMap, path)) {
-        if (file.startsWith(path) && !filesOnDisk.contains(file)) {
-          deletedFileList.add(file);
-          hashCodeMap.remove(file);
+        private Runnable onCloseCallback;
+
+        private MacOSXListeningCallback(
+            MacOSXWatchKey watchKey,
+            FileHasher fileHasher,
+            FileTreeVisitor fileTreeVisitor,
+            SortedMap<Path, FileHash> hashCodeMap,
+            Path absPath)
+            throws IOException {
+            this.watchKey = watchKey;
+            this.hashCodeMap = hashCodeMap;
+            this.fileHasher = fileHasher;
+            this.fileTreeVisitor = fileTreeVisitor;
+            this.realPath = absPath.toRealPath();
+            this.absPath = absPath;
+            this.realPathSize = realPath.toString().length() + 1;
         }
-      }
-      return deletedFileList;
+
+        public void onClose(Runnable callback) {
+            this.onCloseCallback = callback;
+        }
+
+        @Override
+        public void invoke(
+            FSEventStreamRef streamRef,
+            Pointer clientCallBackInfo,
+            NativeLong numEvents,
+            Pointer eventPaths,
+            Pointer eventFlags /* array of unsigned int */,
+            Pointer eventIds /* array of unsigned long */) {
+            final int length = numEvents.intValue();
+
+            for (String fileName : eventPaths.getStringArray(0, length)) {
+                /*
+                 * Note: If file-level events are enabled, fileName will be an individual file
+                 * so we usually won't recurse. It is necessary to normalise the filename back
+                 * to what is used in the key roots. Because the watcher returns real paths, but
+                 * relative paths may have be used in the key roots;
+                 */
+
+                // only substring, if there are child paths, else just return absPath
+                Path path =
+                    fileName.length() + 1 != realPathSize
+                        ? absPath.resolve(fileName.substring(realPathSize))
+                        : absPath;
+                final Set<Path> filesOnDisk;
+                try {
+                    filesOnDisk = PathUtils.recursiveListFiles(fileTreeVisitor, path);
+                } catch (IOException e) {
+                    throw new IllegalStateException("Could not recursively list files for " + path, e);
+                }
+                /*
+                 * We collect and process all actions for each category of created, modified and
+                 * deleted as it appears a first thread can start while a second thread can get
+                 * through faster. If we do the collection for each category in a second thread
+                 * can get to the processing of modifications before the first thread is
+                 * finished processing creates. In this case the modification will not be
+                 * reported correctly.
+                 *
+                 * NOTE: We are now using a hash to determine if a file is different because if
+                 * modifications happens closely together the last modified time is not granular
+                 * enough to be seen as a modification. This likely mitigates the issue I
+                 * originally saw where the ordering was incorrect but I will leave the
+                 * collection and processing of each category together.
+                 */
+
+                for (Path file : findCreatedFiles(filesOnDisk)) {
+                    if (watchKey.isReportCreateEvents()) {
+                        watchKey.signalEvent(ENTRY_CREATE, file);
+                    }
+                }
+
+                for (Path file : findModifiedFiles(filesOnDisk)) {
+                    if (watchKey.isReportModifyEvents()) {
+                        watchKey.signalEvent(ENTRY_MODIFY, file);
+                    }
+                }
+
+                List<Path> deletedPaths = findDeletedFiles(path, filesOnDisk);
+
+                if (hashCodeMap.isEmpty()) {
+                    // all underlying paths are gone, cancel the key.
+                    // This must happen before this event, so that DirectoryWatch also cleans up
+                    watchKey.cancel();
+                }
+
+                for (Path file : deletedPaths) {
+                    if (watchKey.isReportDeleteEvents()) {
+                        watchKey.signalEvent(ENTRY_DELETE, file);
+                    }
+                }
+
+                if (hashCodeMap.isEmpty()) {
+                    // all underlying paths are gone, so stop this service
+                    // These is separated here to go after, in case it throws an exception.
+                    try {
+                        onCloseCallback.run();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        }
+
+        private List<Path> findModifiedFiles(Set<Path> filesOnDisk) {
+            List<Path> modifiedFileList = new ArrayList<Path>();
+            for (Path file : filesOnDisk) {
+                FileHash storedHashCode = hashCodeMap.get(file);
+                FileHash newHashCode = PathUtils.hash(fileHasher, file);
+                if (newHashCode != null && !newHashCode.equals(storedHashCode)) {
+                    modifiedFileList.add(file);
+                    hashCodeMap.put(file, newHashCode);
+                }
+            }
+            return modifiedFileList;
+        }
+
+        private List<Path> findCreatedFiles(Set<Path> filesOnDisk) {
+            List<Path> createdFileList = new ArrayList<Path>();
+            for (Path file : filesOnDisk) {
+                if (!hashCodeMap.containsKey(file)) {
+                    FileHash hashCode = PathUtils.hash(fileHasher, file);
+                    if (hashCode != null) {
+                        createdFileList.add(file);
+                        hashCodeMap.put(file, hashCode);
+                    }
+                }
+            }
+            return createdFileList;
+        }
+
+        private List<Path> findDeletedFiles(Path path, Set<Path> filesOnDisk) {
+            List<Path> deletedFileList = new ArrayList<Path>();
+            for (Path file : PathUtils.subtreePaths(hashCodeMap, path)) {
+                if (file.startsWith(path) && !filesOnDisk.contains(file)) {
+                    deletedFileList.add(file);
+                    hashCodeMap.remove(file);
+                }
+            }
+            return deletedFileList;
+        }
     }
-  }
 }

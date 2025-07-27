@@ -39,133 +39,145 @@ import static java.util.Objects.requireNonNull;
  */
 abstract class AbstractWatchService implements WatchService {
 
-  private final BlockingQueue<WatchKey> queue = new LinkedBlockingQueue<>();
-  private final WatchKey poison = new AbstractWatchKey(this, null, Collections.emptySet(), 1);
+    private final BlockingQueue<WatchKey> queue = new LinkedBlockingQueue<>();
+    private final WatchKey poison = new AbstractWatchKey(this, null, Collections.emptySet(), 1);
 
-  private final AtomicBoolean open = new AtomicBoolean(true);
+    private final AtomicBoolean open = new AtomicBoolean(true);
 
-  /**
-   * Registers the given watchable with this service, returning a new watch key for it. This
-   * implementation just checks that the service is open and creates a key; subclasses may override
-   * it to do other things as well.
-   */
-  public abstract AbstractWatchKey register(
-      WatchablePath watchable, Iterable<? extends WatchEvent.Kind<?>> eventTypes)
-      throws IOException;
+    /**
+     * Registers the given watchable with this service, returning a new watch key for it. This
+     * implementation just checks that the service is open and creates a key; subclasses may override
+     * it to do other things as well.
+     */
+    public abstract AbstractWatchKey register(
+        WatchablePath watchable, Iterable<? extends WatchEvent.Kind<?>> eventTypes)
+        throws IOException;
 
-  /** Returns whether or not this watch service is open. */
-  public boolean isOpen() {
-    return open.get();
-  }
-
-  /** Enqueues the given key if the watch service is open; does nothing otherwise. */
-  final void enqueue(AbstractWatchKey key) {
-    if (isOpen()) {
-      queue.add(key);
+    /**
+     * Returns whether or not this watch service is open.
+     */
+    public boolean isOpen() {
+        return open.get();
     }
-  }
 
-  /** Called when the given key is cancelled. Does nothing by default. */
-  public void cancelled(AbstractWatchKey key) {}
-
-  @Override
-  public WatchKey poll() {
-    checkOpen();
-    return check(queue.poll());
-  }
-
-  @Override
-  public WatchKey poll(long timeout, TimeUnit unit) throws InterruptedException {
-    checkOpen();
-    return check(queue.poll(timeout, unit));
-  }
-
-  @Override
-  public WatchKey take() throws InterruptedException {
-    checkOpen();
-    return check(queue.take());
-  }
-
-  /** Returns the given key, throwing an exception if it's the poison. */
-  private WatchKey check(WatchKey key) {
-    if (key == poison) {
-      // ensure other blocking threads get the poison
-      queue.offer(poison);
-      throw new ClosedWatchServiceException();
+    /**
+     * Enqueues the given key if the watch service is open; does nothing otherwise.
+     */
+    final void enqueue(AbstractWatchKey key) {
+        if (isOpen()) {
+            queue.add(key);
+        }
     }
-    return key;
-  }
 
-  /** Checks that the watch service is open, throwing {@link ClosedWatchServiceException} if not. */
-  protected final void checkOpen() {
-    if (!open.get()) {
-      throw new ClosedWatchServiceException();
-    }
-  }
+    /**
+     * Called when the given key is cancelled. Does nothing by default.
+     */
+    public void cancelled(AbstractWatchKey key) {}
 
-  @Override
-  public void close() {
-    if (open.compareAndSet(true, false)) {
-      queue.clear();
-      queue.offer(poison);
-    }
-  }
-
-  /** A basic implementation of {@link WatchEvent}. */
-  static final class Event<T> implements WatchEvent<T> {
-
-    private final Kind<T> kind;
-    private final int count;
-
-    private final T context;
-
-    public Event(Kind<T> kind, int count, T context) {
-      this.kind = requireNonNull(kind);
-      if (count < 0) {
-        throw new IllegalArgumentException(String.format("count (%s) must be non-negative", count));
-      }
-      this.count = count;
-      this.context = context;
+    @Override
+    public WatchKey poll() {
+        checkOpen();
+        return check(queue.poll());
     }
 
     @Override
-    public Kind<T> kind() {
-      return kind;
+    public WatchKey poll(long timeout, TimeUnit unit) throws InterruptedException {
+        checkOpen();
+        return check(queue.poll(timeout, unit));
     }
 
     @Override
-    public int count() {
-      return count;
+    public WatchKey take() throws InterruptedException {
+        checkOpen();
+        return check(queue.take());
+    }
+
+    /**
+     * Returns the given key, throwing an exception if it's the poison.
+     */
+    private WatchKey check(WatchKey key) {
+        if (key == poison) {
+            // ensure other blocking threads get the poison
+            queue.offer(poison);
+            throw new ClosedWatchServiceException();
+        }
+        return key;
+    }
+
+    /**
+     * Checks that the watch service is open, throwing {@link ClosedWatchServiceException} if not.
+     */
+    protected final void checkOpen() {
+        if (!open.get()) {
+            throw new ClosedWatchServiceException();
+        }
     }
 
     @Override
-    public T context() {
-      return context;
+    public void close() {
+        if (open.compareAndSet(true, false)) {
+            queue.clear();
+            queue.offer(poison);
+        }
     }
 
-    @Override
-    public boolean equals(Object obj) {
-      if (obj instanceof Event) {
-        Event<?> other = (Event<?>) obj;
-        return kind().equals(other.kind())
-            && count() == other.count()
-            && Objects.equals(context(), other.context());
-      }
-      return false;
-    }
+    /**
+     * A basic implementation of {@link WatchEvent}.
+     */
+    static final class Event<T> implements WatchEvent<T> {
 
-    @Override
-    public int hashCode() {
-      return Objects.hash(kind(), count(), context());
-    }
+        private final Kind<T> kind;
+        private final int count;
 
-    @Override
-    public String toString() {
-      return new StringJoiner(", ", getClass().getSimpleName() + "[", "]")
-          .add("kind=" + kind())
-          .add("count=" + count())
-          .add("context=" + context())
-          .toString();
+        private final T context;
+
+        public Event(Kind<T> kind, int count, T context) {
+            this.kind = requireNonNull(kind);
+            if (count < 0) {
+                throw new IllegalArgumentException(String.format("count (%s) must be non-negative", count));
+            }
+            this.count = count;
+            this.context = context;
+        }
+
+        @Override
+        public Kind<T> kind() {
+            return kind;
+        }
+
+        @Override
+        public int count() {
+            return count;
+        }
+
+        @Override
+        public T context() {
+            return context;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj instanceof Event) {
+                Event<?> other = (Event<?>) obj;
+                return kind().equals(other.kind())
+                       && count() == other.count()
+                       && Objects.equals(context(), other.context());
+            }
+            return false;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(kind(), count(), context());
+        }
+
+        @Override
+        public String toString() {
+            return new StringJoiner(", ", getClass().getSimpleName() + "[", "]")
+                .add("kind=" + kind())
+                .add("count=" + count())
+                .add("context=" + context())
+                .toString();
+        }
     }
-  }
 }

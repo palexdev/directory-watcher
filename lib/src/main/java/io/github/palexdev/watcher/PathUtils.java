@@ -24,90 +24,90 @@ import java.util.concurrent.ConcurrentSkipListMap;
 
 public class PathUtils {
 
-  public static FileHash hash(FileHasher fileHasher, Path path) {
-    try {
-      if (Files.isDirectory(path)) {
-        return FileHash.directory();
-      } else {
-        if (!Files.exists(path)) {
-          return null;
+    public static FileHash hash(FileHasher fileHasher, Path path) {
+        try {
+            if (Files.isDirectory(path)) {
+                return FileHash.directory();
+            } else {
+                if (!Files.exists(path)) {
+                    return null;
+                }
+                return fileHasher.hash(path);
+            }
+        } catch (IOException e) {
+            return null;
         }
-        return fileHasher.hash(path);
-      }
-    } catch (IOException e) {
-      return null;
     }
-  }
 
-  public static <T> Iterable<Path> subtreePaths(SortedMap<Path, T> pathMap, Path treeRoot) {
-    List<Path> paths = new ArrayList<>();
-    for (Path path : pathMap.tailMap(treeRoot).keySet()) {
-      if (path.startsWith(treeRoot)) {
-        paths.add(path);
-      } else {
-        break;
-      }
+    public static <T> Iterable<Path> subtreePaths(SortedMap<Path, T> pathMap, Path treeRoot) {
+        List<Path> paths = new ArrayList<>();
+        for (Path path : pathMap.tailMap(treeRoot).keySet()) {
+            if (path.startsWith(treeRoot)) {
+                paths.add(path);
+            } else {
+                break;
+            }
+        }
+        return paths;
     }
-    return paths;
-  }
 
-  public static SortedMap<Path, FileHash> createHashCodeMap(
-      Path file, FileHasher fileHasher, FileTreeVisitor fileTreeVisitor) throws IOException {
-    SortedMap<Path, FileHash> hashes = new ConcurrentSkipListMap<>();
-    FileTreeVisitor.Callback addHash =
-        path -> {
-          FileHash hash = PathUtils.hash(fileHasher, path);
-          if (hash != null) hashes.put(path, hash);
-        };
-    if (fileHasher != null) {
-      fileTreeVisitor.recursiveVisitFiles(file, addHash, addHash);
-    }
-    return hashes;
-  }
-
-  public static void initWatcherState(
-      List<Path> roots,
-      FileHasher fileHasher,
-      FileTreeVisitor fileTreeVisitor,
-      Map<Path, FileHash> hashes,
-      Set<Path> directories)
-      throws IOException {
-    for (Path root : roots) {
-      if (fileHasher == null) {
-        fileTreeVisitor.recursiveVisitFiles(root, directories::add, file -> {});
-      } else {
+    public static SortedMap<Path, FileHash> createHashCodeMap(
+        Path file, FileHasher fileHasher, FileTreeVisitor fileTreeVisitor) throws IOException {
+        SortedMap<Path, FileHash> hashes = new ConcurrentSkipListMap<>();
         FileTreeVisitor.Callback addHash =
             path -> {
-              FileHash hash = PathUtils.hash(fileHasher, path);
-              if (hash != null) hashes.put(path, hash);
+                FileHash hash = PathUtils.hash(fileHasher, path);
+                if (hash != null) hashes.put(path, hash);
             };
-        fileTreeVisitor.recursiveVisitFiles(
-            root,
-            dir -> {
-              directories.add(dir);
-              addHash.call(dir);
-            },
-            addHash);
-      }
-    }
-  }
-
-  public static Set<Path> recursiveListFiles(FileTreeVisitor fileTreeVisitor, Path file)
-      throws IOException {
-    if (!Files.exists(file)) {
-      return Collections.emptySet();
+        if (fileHasher != null) {
+            fileTreeVisitor.recursiveVisitFiles(file, addHash, addHash);
+        }
+        return hashes;
     }
 
-    final Set<Path> files = new HashSet<>();
-    files.add(file);
+    public static void initWatcherState(
+        List<Path> roots,
+        FileHasher fileHasher,
+        FileTreeVisitor fileTreeVisitor,
+        Map<Path, FileHash> hashes,
+        Set<Path> directories)
+        throws IOException {
+        for (Path root : roots) {
+            if (fileHasher == null) {
+                fileTreeVisitor.recursiveVisitFiles(root, directories::add, file -> {});
+            } else {
+                FileTreeVisitor.Callback addHash =
+                    path -> {
+                        FileHash hash = PathUtils.hash(fileHasher, path);
+                        if (hash != null) hashes.put(path, hash);
+                    };
+                fileTreeVisitor.recursiveVisitFiles(
+                    root,
+                    dir -> {
+                        directories.add(dir);
+                        addHash.call(dir);
+                    },
+                    addHash);
+            }
+        }
+    }
 
-    fileTreeVisitor.recursiveVisitFiles(file, files::add, files::add);
+    public static Set<Path> recursiveListFiles(FileTreeVisitor fileTreeVisitor, Path file)
+        throws IOException {
+        if (!Files.exists(file)) {
+            return Collections.emptySet();
+        }
 
-    return files;
-  }
+        final Set<Path> files = new HashSet<>();
+        files.add(file);
 
-  @SuppressWarnings("unchecked")
-  public static <T> WatchEvent<T> cast(WatchEvent<?> event) {
-    return (WatchEvent<T>) event;
-  }
+        fileTreeVisitor.recursiveVisitFiles(file, files::add, files::add);
+
+        return files;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> WatchEvent<T> cast(WatchEvent<?> event) {
+        return (WatchEvent<T>) event;
+    }
 }

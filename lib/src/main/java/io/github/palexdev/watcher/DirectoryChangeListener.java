@@ -21,55 +21,57 @@ import java.io.IOException;
 @FunctionalInterface
 public interface DirectoryChangeListener {
 
-  static DirectoryChangeListener of(DirectoryChangeListener... listeners) {
-    return new DirectoryChangeListener() {
-      @Override
-      public void onEvent(DirectoryChangeEvent event) throws IOException {
-        for (DirectoryChangeListener listener : listeners) {
-          listener.onEvent(event);
-        }
-      }
+    static DirectoryChangeListener of(DirectoryChangeListener... listeners) {
+        return new DirectoryChangeListener() {
+            @Override
+            public void onEvent(DirectoryChangeEvent event) throws IOException {
+                for (DirectoryChangeListener listener : listeners) {
+                    listener.onEvent(event);
+                }
+            }
 
-      @Override
-      public void onException(Exception e) {
-        for (DirectoryChangeListener listener : listeners) {
-          listener.onException(e);
-        }
-      }
+            @Override
+            public void onException(Exception e) {
+                for (DirectoryChangeListener listener : listeners) {
+                    listener.onException(e);
+                }
+            }
 
-      @Override
-      public void onIdle(int count) {
-        for (DirectoryChangeListener listener : listeners) {
-          listener.onIdle(count);
-        }
-      }
+            @Override
+            public void onIdle(int count) {
+                for (DirectoryChangeListener listener : listeners) {
+                    listener.onIdle(count);
+                }
+            }
 
-      @Override
-      public boolean isWatching() {
-        boolean anyWatching = false;
-        for (DirectoryChangeListener listener : listeners) {
-          anyWatching |= listener.isWatching();
-        }
-        return anyWatching;
-      }
-    };
-  }
+            @Override
+            public boolean isWatching() {
+                boolean anyWatching = false;
+                for (DirectoryChangeListener listener : listeners) {
+                    anyWatching |= listener.isWatching();
+                }
+                return anyWatching;
+            }
+        };
+    }
 
-  void onEvent(DirectoryChangeEvent event) throws IOException;
+    void onEvent(DirectoryChangeEvent event) throws IOException;
 
-  /** The watcher will stop watching after this method returns false. */
-  default boolean isWatching() {
-    return true;
-  }
+    /**
+     * The watcher will stop watching after this method returns false.
+     */
+    default boolean isWatching() {
+        return true;
+    }
 
-  default void onIdle(int count) {
-    // ignore onIdle by default
-  }
+    default void onIdle(int count) {
+        // ignore onIdle by default
+    }
 
-  /**
-   * A handler for uncaught exceptions. Throwing an exception from here will terminate the watcher.
-   */
-  default void onException(Exception e) {
-    // Ignore exceptions by default (they will be logged by the watcher)
-  }
+    /**
+     * A handler for uncaught exceptions. Throwing an exception from here will terminate the watcher.
+     */
+    default void onException(Exception e) {
+        // Ignore exceptions by default (they will be logged by the watcher)
+    }
 }
