@@ -27,6 +27,7 @@ java {
     targetCompatibility = "$jdk"
     withSourcesJar()
     withJavadocJar()
+    tasks.withType(Jar).each { it.archiveBaseName.set("directory-watcher") }
 }
 
 test {
