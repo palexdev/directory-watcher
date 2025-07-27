@@ -4,13 +4,39 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="055f9204-b811-48fa-a818-fffc4c668cfe" name="Changes" comment=":fire: Nuke everything">
-      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+    <list default="true" id="055f9204-b811-48fa-a818-fffc4c668cfe" name="Changes" comment=":construction_worker: Bring up CI/CD pipeline">
+      <change afterPath="$PROJECT_DIR$/LICENSE" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/gradle/wrapper/gradle-wrapper.jar" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/gradle/wrapper/gradle-wrapper.properties" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/gradlew" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/gradlew.bat" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/DirectoryChangeEvent.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/DirectoryChangeListener.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/DirectoryWatcher.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/OnTimeoutListener.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/PathUtils.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/changeset/ChangeSet.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/changeset/ChangeSetBuilder.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/changeset/ChangeSetEntry.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/changeset/ChangeSetImpl.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/changeset/ChangeSetListener.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/hashing/ByteArrayFileHash.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/hashing/FileHash.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/hashing/FileHasher.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/hashing/Murmur3F.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/visitor/DefaultFileTreeVisitor.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/visitor/FileTreeVisitor.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/AbstractWatchKey.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/AbstractWatchService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/MacOSXListeningWatchService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/MacOSXWatchKey.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/WatchablePath.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/jna/CFAllocatorRef.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/jna/CFArrayRef.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/jna/CFIndex.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/jna/CFRunLoopRef.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/jna/CFStringRef.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/jna/CarbonAPI.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/jna/FSEventStreamRef.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/java/module-info.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -40,6 +66,13 @@
       </state>
     </system>
   </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="module-info" />
+      </list>
+    </option>
+  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
@@ -67,6 +100,7 @@
   "keyToString": {
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "git-widget-placeholder": "main",
     "last_opened_file_path": "L:/IdeaProjects/directory-watcher-fork",
     "node.js.detected.package.eslint": "true",
@@ -81,6 +115,8 @@
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="L:\IdeaProjects\directory-watcher-fork" />
+      <recent name="L:\IdeaProjects\directory-watcher-fork\lib\src\main\java" />
+      <recent name="L:\IdeaProjects\directory-watcher-fork\.idea" />
     </key>
   </component>
   <component name="SharedIndexes">
@@ -98,7 +134,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1753613279095</updated>
-      <workItem from="1753613280310" duration="750000" />
+      <workItem from="1753613280310" duration="1535000" />
     </task>
     <task id="LOCAL-00001" summary=":fire: Nuke everything">
       <option name="closed" value="true" />
@@ -116,7 +152,23 @@
       <option name="project" value="LOCAL" />
       <updated>1753613386405</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary=":tada: Initialize Gradle project">
+      <option name="closed" value="true" />
+      <created>1753614057589</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1753614057589</updated>
+    </task>
+    <task id="LOCAL-00004" summary=":construction_worker: Bring up CI/CD pipeline">
+      <option name="closed" value="true" />
+      <created>1753614144773</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1753614144773</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -135,6 +187,8 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value=":fire: Nuke everything" />
-    <option name="LAST_COMMIT_MESSAGE" value=":fire: Nuke everything" />
+    <MESSAGE value=":tada: Initialize Gradle project" />
+    <MESSAGE value=":construction_worker: Bring up CI/CD pipeline" />
+    <option name="LAST_COMMIT_MESSAGE" value=":construction_worker: Bring up CI/CD pipeline" />
   </component>
 </project>
