@@ -24,6 +24,9 @@ import io.github.palexdev.watcher.hashing.FileHasher;
 import io.github.palexdev.watcher.visitor.FileTreeVisitor;
 import io.github.palexdev.watchservice.MacOSXListeningWatchService;
 import io.github.palexdev.watchservice.WatchablePath;
+import org.tinylog.Logger;
+import org.tinylog.TaggedLogger;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.*;
@@ -40,9 +43,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class DirectoryWatcher {
 
   /**
@@ -52,7 +52,6 @@ public class DirectoryWatcher {
   public static final class Builder {
     private List<Path> paths = Collections.emptyList();
     private DirectoryChangeListener listener = (event -> {});
-    private Logger logger = null;
     private FileHasher fileHasher = FileHasher.DEFAULT_FILE_HASHER;
     private WatchService watchService = null;
     private FileTreeVisitor fileTreeVisitor = null;
@@ -84,15 +83,6 @@ public class DirectoryWatcher {
      */
     public Builder watchService(WatchService watchService) {
       this.watchService = watchService;
-      return this;
-    }
-
-    /**
-     * Set a logger to be used by the watcher. This defaults to {@code
-     * LoggerFactory.getLogger(DirectoryWatcher.class)}
-     */
-    public Builder logger(Logger logger) {
-      this.logger = logger;
       return this;
     }
 
@@ -129,11 +119,7 @@ public class DirectoryWatcher {
       if (watchService == null) {
         osDefaultWatchService(fileTreeVisitor);
       }
-      if (logger == null) {
-        staticLogger();
-      }
-      return new DirectoryWatcher(
-          paths, listener, watchService, fileHasher, fileTreeVisitor, logger);
+      return new DirectoryWatcher(paths, listener, watchService, fileHasher, fileTreeVisitor);
     }
 
     private Builder osDefaultWatchService(FileTreeVisitor fileTreeVisitor) throws IOException {
@@ -162,10 +148,6 @@ public class DirectoryWatcher {
         return watchService(FileSystems.getDefault().newWatchService());
       }
     }
-
-    private Builder staticLogger() {
-      return logger(LoggerFactory.getLogger(DirectoryWatcher.class));
-    }
   }
 
   /** Get a new builder for a {@link DirectoryWatcher}. */
@@ -173,7 +155,7 @@ public class DirectoryWatcher {
     return new Builder();
   }
 
-  private final Logger logger;
+  private final TaggedLogger logger;
   private final WatchService watchService;
   private final List<Path> paths;
   private final boolean isMac;
@@ -197,15 +179,15 @@ public class DirectoryWatcher {
       DirectoryChangeListener listener,
       WatchService watchService,
       FileHasher fileHasher,
-      FileTreeVisitor fileTreeVisitor,
-      Logger logger) {
+      FileTreeVisitor fileTreeVisitor
+  ) {
     this.paths = paths.stream().map(p -> p.toAbsolutePath()).collect(Collectors.toList());
     this.listener = listener;
     this.watchService = watchService;
     this.isMac = watchService instanceof MacOSXListeningWatchService;
     this.fileHasher = fileHasher;
     this.fileTreeVisitor = fileTreeVisitor;
-    this.logger = logger;
+    this.logger = Logger.tag("DirectoryWatcher");
   }
 
   /**
@@ -371,7 +353,7 @@ public class DirectoryWatcher {
                 pathHashes.put(childPath, newHash);
                 onEvent(EventType.MODIFY, isDirectory, childPath, count, rootPath);
               } else if (newHash == null) {
-                logger.debug(
+                logger.warn(
                     "Failed to hash modified file [{}]. It may have been deleted.", childPath);
               }
             }
@@ -390,13 +372,13 @@ public class DirectoryWatcher {
             }
           }
         } catch (Exception e) {
-          logger.debug("DirectoryWatcher got an exception while watching!", e);
+          logger.error(e, "DirectoryWatcher got an exception while watching!");
           listener.onException(e);
         }
       }
       boolean valid = key.reset();
       if (!valid) {
-        logger.debug("WatchKey for [{}] no longer valid; removing.", key.watchable());
+        logger.warn("WatchKey for [{}] no longer valid; removing.", key.watchable());
         // remove the key from the keyRoots
         Path registeredPath = keyRoots.remove(key);
 
@@ -435,7 +417,7 @@ public class DirectoryWatcher {
         fileTreeSupported = true;
       } catch (UnsupportedOperationException e) {
         // UnsupportedOperationException should only happen if FILE_TREE is unsupported
-        logger.debug("Assuming ExtendedWatchEventModifier.FILE_TREE is not supported", e);
+        logger.warn("Assuming ExtendedWatchEventModifier.FILE_TREE is not supported", e);
         fileTreeSupported = false;
         // If we failed to use the FILE_TREE modifier, try again without
         registerAll(start, context);
@@ -470,12 +452,12 @@ public class DirectoryWatcher {
         // Hashing could fail for locked files on Windows.
         // Skip notification only if we confirm the file does not exist.
         if (Files.notExists(path)) {
-          logger.debug("Failed to hash created file [{}]. It may have been deleted.", path);
+          logger.warn("Failed to hash created file [{}]. It may have been deleted.", path);
           // Skip notifying the event.
           return;
         } else {
           // Just warn here and continue to notify the event.
-          logger.debug("Failed to hash created file [{}]. It may be locked.", path);
+          logger.warn("Failed to hash created file [{}]. It may be locked.", path);
         }
       } else {
         FileHash oldHash = pathHashes.put(path, newHash);

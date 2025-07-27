@@ -4,39 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="055f9204-b811-48fa-a818-fffc4c668cfe" name="Changes" comment=":construction_worker: Bring up CI/CD pipeline">
-      <change afterPath="$PROJECT_DIR$/LICENSE" afterDir="false" />
+    <list default="true" id="055f9204-b811-48fa-a818-fffc4c668cfe" name="Changes" comment=":truck: Re-import code">
       <change afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/DirectoryChangeEvent.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/DirectoryChangeListener.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/DirectoryWatcher.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/OnTimeoutListener.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/PathUtils.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/changeset/ChangeSet.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/changeset/ChangeSetBuilder.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/changeset/ChangeSetEntry.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/changeset/ChangeSetImpl.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/changeset/ChangeSetListener.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/hashing/ByteArrayFileHash.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/hashing/FileHash.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/hashing/FileHasher.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/hashing/Murmur3F.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/visitor/DefaultFileTreeVisitor.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/visitor/FileTreeVisitor.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/AbstractWatchKey.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/AbstractWatchService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/MacOSXListeningWatchService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/MacOSXWatchKey.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/WatchablePath.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/jna/CFAllocatorRef.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/jna/CFArrayRef.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/jna/CFIndex.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/jna/CFRunLoopRef.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/jna/CFStringRef.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/jna/CarbonAPI.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/jna/FSEventStreamRef.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/java/module-info.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/src/main/resources/tinylog.properties" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/DirectoryWatcher.java" beforeDir="false" afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/DirectoryWatcher.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/src/main/java/module-info.java" beforeDir="false" afterPath="$PROJECT_DIR$/lib/src/main/java/module-info.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -108,6 +81,9 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
+    "project.structure.last.edited": "Modules",
+    "project.structure.proportion": "0.0",
+    "project.structure.side.proportion": "0.0",
     "settings.editor.selected.configurable": "configurable.group.appearance",
     "vue.rearranger.settings.migration": "true"
   }
@@ -134,7 +110,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1753613279095</updated>
-      <workItem from="1753613280310" duration="1535000" />
+      <workItem from="1753613280310" duration="2737000" />
     </task>
     <task id="LOCAL-00001" summary=":fire: Nuke everything">
       <option name="closed" value="true" />
@@ -168,7 +144,15 @@
       <option name="project" value="LOCAL" />
       <updated>1753614144773</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary=":truck: Re-import code">
+      <option name="closed" value="true" />
+      <created>1753614889093</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1753614889093</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -189,6 +173,7 @@
     <MESSAGE value=":fire: Nuke everything" />
     <MESSAGE value=":tada: Initialize Gradle project" />
     <MESSAGE value=":construction_worker: Bring up CI/CD pipeline" />
-    <option name="LAST_COMMIT_MESSAGE" value=":construction_worker: Bring up CI/CD pipeline" />
+    <MESSAGE value=":truck: Re-import code" />
+    <option name="LAST_COMMIT_MESSAGE" value=":truck: Re-import code" />
   </component>
 </project>
