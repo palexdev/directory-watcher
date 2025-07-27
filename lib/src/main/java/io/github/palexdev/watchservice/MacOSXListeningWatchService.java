@@ -22,7 +22,6 @@ import io.github.palexdev.watcher.hashing.FileHash;
 import io.github.palexdev.watcher.hashing.FileHasher;
 import io.github.palexdev.watcher.visitor.FileTreeVisitor;
 import io.github.palexdev.watchservice.jna.*;
-import io.methvin.watchservice.jna.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
