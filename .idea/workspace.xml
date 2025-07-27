@@ -4,12 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="055f9204-b811-48fa-a818-fffc4c668cfe" name="Changes" comment=":truck: Re-import code">
+    <list default="true" id="055f9204-b811-48fa-a818-fffc4c668cfe" name="Changes" comment=":recycle: Replace SLF4J with TinyLog and print at sensible levels">
       <change afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib/src/main/resources/tinylog.properties" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/DirectoryWatcher.java" beforeDir="false" afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watcher/DirectoryWatcher.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gradle.properties" beforeDir="false" afterPath="$PROJECT_DIR$/gradle.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/build.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/lib/build.gradle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/MacOSXListeningWatchService.java" beforeDir="false" afterPath="$PROJECT_DIR$/lib/src/main/java/io/github/palexdev/watchservice/MacOSXListeningWatchService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/src/main/java/module-info.java" beforeDir="false" afterPath="$PROJECT_DIR$/lib/src/main/java/module-info.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/src/main/resources/tinylog.properties" beforeDir="false" afterPath="$PROJECT_DIR$/lib/src/main/resources/tinylog.properties" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -30,9 +32,17 @@
   <component name="ExternalProjectsManager">
     <system id="GRADLE">
       <state>
+        <task path="$PROJECT_DIR$">
+          <activation />
+        </task>
         <projects_view>
           <tree_state>
-            <expand />
+            <expand>
+              <path>
+                <item name="" type="6a2764b6:ExternalProjectsStructure$RootNode" />
+                <item name="directory-watcher" type="f1a62948:ProjectNode" />
+              </path>
+            </expand>
             <select />
           </tree_state>
         </projects_view>
@@ -71,6 +81,9 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "Gradle.Download Sources.executor": "Run",
+    "Gradle.directory-watcher-fork [clean publishMavenPublicationToMavenLocal].executor": "Run",
+    "Gradle.directory-watcher-fork [lib:publishMavenPublicationToMavenLocal].executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
@@ -95,6 +108,65 @@
       <recent name="L:\IdeaProjects\directory-watcher-fork\.idea" />
     </key>
   </component>
+  <component name="RunAnythingCache">
+    <option name="myCommands">
+      <command value="gradle lib:publishMavenPublicationToMavenLocal" />
+      <command value="gradle clean publishMavenPublicationToMavenLocal" />
+    </option>
+  </component>
+  <component name="RunManager" selected="Gradle.directory-watcher-fork [lib:publishMavenPublicationToMavenLocal]">
+    <configuration name="directory-watcher-fork [clean publishMavenPublicationToMavenLocal]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" value="" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value="clean" />
+            <option value="publishMavenPublicationToMavenLocal" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <RunAsTest>false</RunAsTest>
+      <method v="2" />
+    </configuration>
+    <configuration name="directory-watcher-fork [lib:publishMavenPublicationToMavenLocal]" type="GradleRunConfiguration" factoryName="Gradle" temporary="true">
+      <ExternalSystemSettings>
+        <option name="executionName" />
+        <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <option name="externalSystemIdString" value="GRADLE" />
+        <option name="scriptParameters" value="" />
+        <option name="taskDescriptions">
+          <list />
+        </option>
+        <option name="taskNames">
+          <list>
+            <option value="lib:publishMavenPublicationToMavenLocal" />
+          </list>
+        </option>
+        <option name="vmOptions" />
+      </ExternalSystemSettings>
+      <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
+      <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+      <DebugAllEnabled>false</DebugAllEnabled>
+      <RunAsTest>false</RunAsTest>
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Gradle.directory-watcher-fork [lib:publishMavenPublicationToMavenLocal]" />
+        <item itemvalue="Gradle.directory-watcher-fork [clean publishMavenPublicationToMavenLocal]" />
+      </list>
+    </recent_temporary>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -110,7 +182,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1753613279095</updated>
-      <workItem from="1753613280310" duration="2737000" />
+      <workItem from="1753613280310" duration="3722000" />
     </task>
     <task id="LOCAL-00001" summary=":fire: Nuke everything">
       <option name="closed" value="true" />
@@ -152,7 +224,15 @@
       <option name="project" value="LOCAL" />
       <updated>1753614889093</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary=":recycle: Replace SLF4J with TinyLog and print at sensible levels">
+      <option name="closed" value="true" />
+      <created>1753617256322</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1753617256322</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -174,6 +254,7 @@
     <MESSAGE value=":tada: Initialize Gradle project" />
     <MESSAGE value=":construction_worker: Bring up CI/CD pipeline" />
     <MESSAGE value=":truck: Re-import code" />
-    <option name="LAST_COMMIT_MESSAGE" value=":truck: Re-import code" />
+    <MESSAGE value=":recycle: Replace SLF4J with TinyLog and print at sensible levels" />
+    <option name="LAST_COMMIT_MESSAGE" value=":recycle: Replace SLF4J with TinyLog and print at sensible levels" />
   </component>
 </project>
